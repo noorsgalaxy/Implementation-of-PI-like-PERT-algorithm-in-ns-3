@@ -223,6 +223,23 @@ void TcpPertRed::UpdatePertVars(const Time& l_rtt)
 
 void TcpPertRed::CheckChangeLossProb(Ptr<TcpSocketState> tcb)
 {
+	double L = 0;
+	for (int i=0;i<8;i++)
+		L = L + m_weight[i]*m_historyND[i];
+	L = L/6;
+	if (m_nd < L)
+		return;
+	if (m_changeWindow == 0)
+	{
+		m_changeWindow = 1;                   
+		m_historyND.erase(m_historyND.begin());
+	}
+	m_historyND.push_back(m_nd);
+	L = 0;
+	for (int i=0;i<8;i++)
+		L = L + m_weight[i]*m_historyND[i];
+	m_dProb = 6/(L);
+	CheckAndSetAlpha (tcb); 
 }
 
 void TcpPertRed::CalculateP ()
