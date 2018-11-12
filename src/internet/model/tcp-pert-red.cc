@@ -227,6 +227,26 @@ void TcpPertRed::CheckChangeLossProb(Ptr<TcpSocketState> tcb)
 
 void TcpPertRed::CalculateP ()
 {
+	double curr_srtt = m_pertSrtt;
+	double p = m_pertProb;
+        double minRtt = m_minRtt.GetSeconds ();
+	double curq = curr_srtt - minRtt;
+	m_thresh3 = Time(Seconds (std::max ((2*m_thresh2.GetSeconds ()), 0.65*(m_maxRtt.GetSeconds () - m_minRtt.GetSeconds ()))));
+
+	if (curr_srtt >= (minRtt + m_thresh2.GetSeconds ()))
+	{
+		p = m_maxp + ((m_maxProb-m_maxp)*((curq - m_thresh2.GetSeconds ())) / (m_thresh3.GetSeconds () - m_thresh2.GetSeconds ()));
+	}
+	else if (curr_srtt >= (minRtt + m_thresh1.GetSeconds ()))
+	{
+      		p = m_maxp *((curq - m_thresh1.GetSeconds ())/(m_thresh2.GetSeconds () - m_thresh1.GetSeconds ()));
+	}
+	if(m_sender)
+  	printf("P : %f curr_srtt: %f curq: %f m_minRtt: %f t3 : %f\n", m_pertProb,curr_srtt,curq,m_minRtt.GetSeconds(),m_thresh3.GetSeconds());
+	if (p < 0) p = 0.0;
+	if (p > 1) p = 1;
+	m_pertProb = p;
+	m_rtrsEvent = Simulator::Schedule (Time (Seconds (1.0/170.0)), &TcpPertRed::CalculateP, this);
 }
 
 void TcpPertRed::CheckAndSetAlpha(Ptr<TcpSocketState> tcb)           
